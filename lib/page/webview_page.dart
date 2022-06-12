@@ -85,11 +85,24 @@ class _WebViewScreenState extends State<WebViewScreen> {
               backgroundColor: Colors.black,
             ),
             Expanded(
-
               child: WebView(
                   onProgress: (progress) {
                     this.progress = progress / 100;
                     setState(() {});
+                  },
+                  onPageStarted: (url) {
+                    log('New site: ${url}');
+                  },
+                  onPageFinished: (url) {
+                    log('Page loaded');
+                  },
+                  navigationDelegate: (request) {
+                    if (request.url.startsWith('https://m.youtube.com')){
+                      log('Navigation block to $request');
+                      return NavigationDecision.prevent;
+                    }
+                    log('Navigation to $request');
+                    return NavigationDecision.navigate;
                   },
                   onWebViewCreated: (controller) {
                     _webViewController = controller;
@@ -103,6 +116,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
         floatingActionButton: FloatingActionButton(
           child: const Icon(Icons.next_plan),
           onPressed: () async {
+            final currentUrl = await _webViewController.currentUrl();
+            log("Previous page: $currentUrl");
             _webViewController.loadUrl('https://www.youtube.com');
           },
         ),
