@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:webview/page/webview_local_page.dart';
 import 'package:webview/page/webview_page.dart';
 
 void main() {
@@ -15,7 +16,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: WebViewScreen(),
+      home: WebViewLocalPage(),
     );
   }
 }

@@ -15,6 +15,7 @@ enum MenuOptions { clearCache, clearCookies }
 class _WebViewScreenState extends State<WebViewScreen> {
   late WebViewController _webViewController;
   double progress = 0;
+  late bool isSubmitting;
 
   @override
   Widget build(BuildContext context) {
@@ -28,55 +29,55 @@ class _WebViewScreenState extends State<WebViewScreen> {
         return false;
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: Text("WebView"),
-          actions: [
-            IconButton(
-                onPressed: () async {
-                  if (await _webViewController.canGoBack()) {
-                    _webViewController.goBack();
-                  } else {
-                    log('_webViewController error back');
-                  }
-                  return;
-                },
-                icon: const Icon(Icons.arrow_back_ios)),
-            IconButton(
-                onPressed: () async {
-                  if (await _webViewController.canGoForward()) {
-                    _webViewController.canGoForward();
-                  } else {
-                    log('_webViewController error forward');
-                  }
-                  return;
-                },
-                icon: const Icon(Icons.arrow_forward_ios)),
-            IconButton(
-                onPressed: () {
-                  _webViewController.reload();
-                },
-                icon: const Icon(Icons.replay)),
-            PopupMenuButton<MenuOptions>(
-                onSelected: (value) {
-                  switch (value) {
-                    case MenuOptions.clearCache:
-                      _onClearCache(_webViewController, context);
-                      break;
-                    case MenuOptions.clearCookies:
-                      _onClearCookies(context);
-                      break;
-                  }
-                },
-                itemBuilder: (context) => <PopupMenuItem<MenuOptions>>[
-                      const PopupMenuItem(
-                          value: MenuOptions.clearCache,
-                          child: Text('Clear Cache')),
-                      const PopupMenuItem(
-                          value: MenuOptions.clearCookies,
-                          child: Text('Clear Cookies')),
-                    ])
-          ],
-        ),
+        // appBar: AppBar(
+        //   title: Text("WebView"),
+        //   actions: [
+        //     IconButton(
+        //         onPressed: () async {
+        //           if (await _webViewController.canGoBack()) {
+        //             _webViewController.goBack();
+        //           } else {
+        //             log('_webViewController error back');
+        //           }
+        //           return;
+        //         },
+        //         icon: const Icon(Icons.arrow_back_ios)),
+        //     IconButton(
+        //         onPressed: () async {
+        //           if (await _webViewController.canGoForward()) {
+        //             _webViewController.canGoForward();
+        //           } else {
+        //             log('_webViewController error forward');
+        //           }
+        //           return;
+        //         },
+        //         icon: const Icon(Icons.arrow_forward_ios)),
+        //     IconButton(
+        //         onPressed: () {
+        //           _webViewController.reload();
+        //         },
+        //         icon: const Icon(Icons.replay)),
+        //     PopupMenuButton<MenuOptions>(
+        //         onSelected: (value) {
+        //           switch (value) {
+        //             case MenuOptions.clearCache:
+        //               _onClearCache(_webViewController, context);
+        //               break;
+        //             case MenuOptions.clearCookies:
+        //               _onClearCookies(context);
+        //               break;
+        //           }
+        //         },
+        //         itemBuilder: (context) => <PopupMenuItem<MenuOptions>>[
+        //               const PopupMenuItem(
+        //                   value: MenuOptions.clearCache,
+        //                   child: Text('Clear Cache')),
+        //               const PopupMenuItem(
+        //                   value: MenuOptions.clearCookies,
+        //                   child: Text('Clear Cookies')),
+        //             ])
+        //   ],
+        // ),
         body: Column(
           children: [
             LinearProgressIndicator(
@@ -91,13 +92,25 @@ class _WebViewScreenState extends State<WebViewScreen> {
                     setState(() {});
                   },
                   onPageStarted: (url) {
-                    log('New site: ${url}');
+                    if (url.contains('https://flutter.dev/')) {
+                      Future.delayed(const Duration(microseconds: 300));
+                      _webViewController.evaluateJavascript(
+                        "document.getElementsByTagName('notification)[0].style.display'='none'",
+                      );
+                    }
+                    log('New site: $url');
                   },
                   onPageFinished: (url) {
                     log('Page loaded');
+                    if(url.contains('https://m.facebook.com/')){
+                      if (isSubmitting){
+                        _webViewController.loadUrl('https://m.facebook.com/');
+                        isSubmitting = false;
+                      }
+                    }
                   },
                   navigationDelegate: (request) {
-                    if (request.url.startsWith('https://m.youtube.com')){
+                    if (request.url.startsWith('https://m.youtube.com')) {
                       log('Navigation block to $request');
                       return NavigationDecision.prevent;
                     }
@@ -108,7 +121,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                     _webViewController = controller;
                   },
                   javascriptMode: JavascriptMode.unrestricted,
-                  initialUrl: 'https://flutter.dev/'),
+                  initialUrl: 'https://rezka.ag/'),
             ),
           ],
         ),
@@ -116,9 +129,25 @@ class _WebViewScreenState extends State<WebViewScreen> {
         floatingActionButton: FloatingActionButton(
           child: const Icon(Icons.next_plan),
           onPressed: () async {
-            final currentUrl = await _webViewController.currentUrl();
-            log("Previous page: $currentUrl");
-            _webViewController.loadUrl('https://www.youtube.com');
+            // final currentUrl = await _webViewController.currentUrl();
+            // log("Previous page: $currentUrl");
+            // _webViewController.loadUrl('https://www.youtube.com');
+            // _webViewController.evaluateJavascript(
+            //   "document.getElementsByTagName('footer)[0].style.display'='none'",
+            // );
+            const email = 'email';
+            const pass = 'pass';
+            _webViewController.evaluateJavascript(
+              'document.getElementById("m_login_email").value="$email"',
+            );
+            _webViewController.evaluateJavascript(
+              'document.getElementById("m_login_password").value="$pass"',
+            );
+            await Future.delayed(Duration(seconds: 1));
+            isSubmitting = true;
+            await _webViewController.evaluateJavascript(
+              'document.forms[0].submit()',
+            );
           },
         ),
       ),
